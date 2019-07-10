@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "alias": "convertelligence-slack",
+  "name": "convertelligence-slack",
+  "builds": [{ "src": "next.config.js", "use": "@now/next" }]
+}

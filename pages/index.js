@@ -1,152 +1,126 @@
-/* global API_KEY */
+import React, { useState, useEffect } from "react";
 
-import React from 'react';
-import Router from 'next/router';
-import Link from 'next/link';
-import 'isomorphic-fetch';
-import 'now-env';
+import { fetchMembers, shuffle } from "../slack";
 
-function shuffle(array) {
-  var currentIndex = array.length,
-    temporaryValue,
-    randomIndex;
+const Styles = () => (
+  <style jsx global>
+    {`
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+      }
+      img {
+        border-radius: 15px;
+      }
+      p {
+        color: #2c2c2c;
+      }
+    `}
+  </style>
+);
 
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex -= 1;
+const hotKeys = ({ reveal, next }) => {
+  const [initiated, setInitiated] = useState(false);
 
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex];
-    array[currentIndex] = array[randomIndex];
-    array[randomIndex] = temporaryValue;
+  function handleKeyDown({ keyCode: key }) {
+    const KEY_RIGHT = 39;
+    const KEY_UP = 38;
+
+    if (key === KEY_RIGHT) {
+      next();
+    } else if (key === KEY_UP) reveal();
   }
 
-  return array;
-}
-
-const API_KEY = process.env.SLACK_API;
-
-const CHANNEL_ID = process.env.CHANNEL_ID;
-
-const KEY_RIGHT = 39;
-const KEY_UP = 38;
-
-export default class HomePage extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      page: 0,
-      reveal: false
-    };
-  }
-
-  componentDidMount() {
-    document.addEventListener('keydown', this.handleKeyDown.bind(this));
-  }
-
-  handleKeyDown({ keyCode: key }) {
-    if (key === KEY_RIGHT) this.next();
-    else if (key === KEY_UP) this.setState({ reveal: true });
-  }
-
-  static async getInitialProps({ req }) {
-    console.log('req', req);
-    const channelRes = await fetch(
-      `https://slack.com/api/channels.info?token=${API_KEY}&channel=${CHANNEL_ID}`
-    );
-    const memberRes = await fetch(
-      `https://slack.com/api/users.list?token=${API_KEY}`
-    );
-    const { members } = await memberRes.json();
-    const { channel } = await channelRes.json();
-
-    if (members) {
-      let filteredMembers = members
-        .filter(m => channel.members.indexOf(m.id) >= 0)
-        .map(member => {
-          return {
-            image:
-              member.profile.image_original ||
-              member.profile.image_1024 ||
-              member.profile.image_512,
-            name: member.profile.real_name_normalized
-          };
-        });
-      filteredMembers = shuffle(filteredMembers);
-      return { members: filteredMembers };
-    } else {
-      return { members: [] };
+  useEffect(() => {
+    if (!initiated) {
+      document.addEventListener("keydown", handleKeyDown);
+      setInitiated(true);
     }
-  }
+  });
+};
 
-  // componentWillReceiveProps(nextProps) {
-  //   const { pathname, query } = nextProps.url;
-  //   console.log('yo', pathname, query);
-  //   // fetch data based on the new query
-  // }
+const Home = ({ members }) => {
+  const [page, setPage] = useState(0);
+  const [reveal, setReveal] = useState(false);
 
-  next() {
-    this.setState(prev => ({
-      reveal: false,
-      page: prev.page + 1
-    }));
-  }
+  const next = () => {
+    setReveal(false);
+    setPage(prevPage => {
+      if (prevPage >= members.length - 1) {
+        members = shuffle(members);
+        return 0;
+      } else {
+        return prevPage + 1;
+      }
+    });
+  };
 
-  render() {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          flex: 1
-        }}
-      >
-        <div>
-          {this.props.members.map((m, i) => (
-            <img
-              key={i}
+  hotKeys({ reveal: () => setReveal(true), next });
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        flex: 1
+      }}
+    >
+      <Styles />
+      <div style={{ height: "80px" }}>
+        {reveal && (
+          <>
+            <p style={{ fontSize: "30px", display: "inline-block" }}>
+              {members[page].name}
+            </p>
+            <div
               style={{
-                maxWidth: '400px',
-                display: i === this.state.page ? 'block' : 'none'
+                backgroundColor: "#32715d",
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                marginBottom: "4px",
+                marginLeft: "10px",
+                display: "inline-block"
               }}
-              src={m.image}
             />
-          ))}
-        </div>
-        <div>
-          <p style={{ fontSize: '30px' }}>
-            {this.state.reveal && this.props.members[this.state.page].name}
-          </p>
-        </div>
-        <div>
-          <p>
-            Press{' '}
-            <a href="#" onClick={() => this.setState({ reveal: true })}>
-              UP
-            </a>{' '}
-            to reveal.{' '}
-            <a href="#" onClick={() => this.next()}>
-              RIGHT
-            </a>{' '}
-            to go next
-          </p>
-        </div>
-        <div>
-          <p>
-            {this.state.page + 1}/{this.props.members.length}
-          </p>
-        </div>
-        <br />
-        <div>
-          <a href="https://github.com/jorgenbs/slack-flash">
-            make a Pull Request to my ugly code @github
-          </a>
-        </div>
+          </>
+        )}
       </div>
-    );
-  }
-}
+      <div>
+        {members.map((m, i) => (
+          <img
+            alt="profile"
+            key={i}
+            style={{
+              width: "400px",
+              display: i === page ? "block" : "none"
+            }}
+            src={m.image}
+          />
+        ))}
+      </div>
+      <p>
+        {page + 1}/{members.length}
+      </p>
+      <div>
+        <div onClick={() => setReveal(true)}>⬆️ to reveal</div>
+        <div onClick={() => next()}>➡️ to go next</div>
+      </div>
+    </div>
+  );
+};
+
+Home.getInitialProps = async () => {
+  const members = await fetchMembers();
+  return { members: shuffle(members) };
+};
+
+export default Home;

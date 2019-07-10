@@ -1,0 +1,61 @@
+import "isomorphic-fetch";
+
+export function shuffle(array) {
+  var currentIndex = array.length,
+    temporaryValue,
+    randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+export async function fetchMembers() {
+  const CHANNEL_ID = process.env.CHANNEL_ID;
+  const API_KEY = process.env.API_KEY;
+
+  const channelRes = await fetch(
+    `https://slack.com/api/channels.info?token=${API_KEY}&channel=${CHANNEL_ID}`
+  );
+  const memberRes = await fetch(
+    `https://slack.com/api/users.list?token=${API_KEY}`
+  );
+
+  const { members } = await memberRes.json();
+  const { channel } = await channelRes.json();
+
+  if (members && channel) {
+    let filteredMembers = members
+      .filter(
+        m =>
+          !m.is_bot &&
+          !m.is_restricted &&
+          !m.deleted &&
+          channel.members.indexOf(m.id) >= 0
+      )
+      .map(member => {
+        return {
+          image:
+            member.profile.image_original ||
+            member.profile.image_1024 ||
+            member.profile.image_512,
+          name: member.profile.real_name_normalized,
+          id: member.id
+        };
+      });
+    return filteredMembers;
+  }
+  return [];
+}
+
+export default fetchMembers;
