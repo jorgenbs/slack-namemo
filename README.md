@@ -9,9 +9,13 @@ Hit UP-key to reveal name, Hit RIGHT-key to go next.
 # installation
 Built with Next.js so its server-rendered React.
 
-You need enviornment vars `CHANNEL_ID` and `SLACK_API` (thats the API KEY)
+You need enviornment: 
+ * `SLACK_API` token from Slack
+ * `CHANNEL_ID` slack channel to fetch members from (find it using https://slack.com/api/channels.list)
 
+Start dev server with:
 ```
-yarn
-npm run dev
+npm i -g now
+npm i 
+now dev
 ```
