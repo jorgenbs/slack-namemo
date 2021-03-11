@@ -21,41 +21,34 @@ export function shuffle(array) {
 }
 
 export async function fetchMembers() {
-  const CHANNEL_ID = process.env.CHANNEL_ID;
-  const API_KEY = process.env.API_KEY;
+  const CHANNEL_ID = process.env.SLACK_CHANNEL_ID;
+  const API_KEY = process.env.SLACK_API_KEY;
 
   const channelRes = await fetch(
-    `https://slack.com/api/channels.info?token=${API_KEY}&channel=${CHANNEL_ID}`
+    `https://slack.com/api/conversations.members?token=${API_KEY}&channel=${CHANNEL_ID}`
   );
   const memberRes = await fetch(
     `https://slack.com/api/users.list?token=${API_KEY}`
   );
 
   const { members } = await memberRes.json();
-  const { channel } = await channelRes.json();
+  const channel = await channelRes.json();
 
-  if (members && channel) {
-    let filteredMembers = members
-      .filter(
-        m =>
-          !m.is_bot &&
-          !m.is_restricted &&
-          !m.deleted &&
-          channel.members.indexOf(m.id) >= 0
-      )
-      .map(member => {
-        return {
-          image:
-            member.profile.image_original ||
-            member.profile.image_1024 ||
-            member.profile.image_512,
-          name: member.profile.real_name_normalized,
-          id: member.id
-        };
-      });
-    return filteredMembers;
+  const keepUser = (m) => {
+    return !m.is_bot && !m.is_restricted && !m.deleted && !m.is_stranger && channel.members.indexOf(m.id) >= 0;
   }
-  return [];
+
+  if (!members || !channel) {
+    return [];
+  }
+  return members.filter(keepUser).map((member) => ({
+    image:
+      member.profile.image_original ||
+      member.profile.image_1024 ||
+      member.profile.image_512,
+    name: member.profile.real_name_normalized,
+    id: member.id
+  }));
 }
 
 export default fetchMembers;
