@@ -23,16 +23,14 @@ export function shuffle(array) {
 export async function fetchMembers() {
   const CHANNEL_ID = process.env.SLACK_CHANNEL_ID;
   const API_KEY = process.env.SLACK_API_KEY;
+  const options = { headers: { "Authorization": `Bearer ${API_KEY}`}}
 
-  const channelRes = await fetch(
-    `https://slack.com/api/conversations.members?token=${API_KEY}&channel=${CHANNEL_ID}`
-  );
-  const memberRes = await fetch(
-    `https://slack.com/api/users.list?token=${API_KEY}`
-  );
+  const channelRes = await fetch(`https://slack.com/api/conversations.members?channel=${CHANNEL_ID}`, options);
+  const memberRes = await fetch(`https://slack.com/api/users.list`, options);
 
   const { members } = await memberRes.json();
   const channel = await channelRes.json();
+  console.log('done!', channel, options)
 
   const keepUser = (m) => {
     return !m.is_bot && !m.is_restricted && !m.deleted && !m.is_stranger && channel.members.indexOf(m.id) >= 0;

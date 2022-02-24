@@ -1,9 +1,18 @@
 import express from "express";
+// import { App } from "@slack/bolt";
 const app = express();
-const port = 8881;
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+const port = process.env.PORT ?? 8881;
 
 app.get("/", (req, res) => {
-  res.send("Hello World....");
+  res.send("Hello World");
+});
+
+app.post("/slack/slash/new", (req, res) => {
+  console.log("HEi");
+  console.log(req.body);
+  res.send("OK");
 });
 
 app.listen(port, () => {
