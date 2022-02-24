@@ -1,0 +1,38 @@
+_metadata:
+  major_version: 1
+  minor_version: 1
+display_information:
+  name: Namemo
+  description: Remember new names faster
+  background_color: "#0000AA"
+settings:
+  socket_mode_enabled: false
+  interactivity:
+    is_enabled: true
+    request_url: https://namemo.ngrok.io/slack/message_action
+  event_subscriptions:
+    request_url: https://namemo.ngrok.io/slack/event
+    bot_events:
+      - member_joined_channel
+features:
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+  bot_user:
+    display_name: namemo
+  slash_commands:
+    - command: /new
+      description: Get a new colleague picture.
+      usage_hint: /new
+      url: https://namemo.ngrok.io/slack/slash/new
+oauth_config:
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - channels:read
+      - team:read
+      - users:read
+  redirect_urls:
+    - https://namemo.ngrok.io/slack/auth
