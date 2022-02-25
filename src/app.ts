@@ -14,7 +14,7 @@ app.get("/", (req, res) => {
   res.send("Hello World");
 });
 
-app.post("/slack/slash/new", async (req, res) => {
+async function fetchMember() {
   const members = await fetchMembers({
     CHANNEL_ID: process.env.SLACK_TEAM_CHANNEL,
     API_KEY: process.env.SLACK_BOT_TOKEN,
@@ -57,9 +57,12 @@ app.post("/slack/slash/new", async (req, res) => {
       },
     ],
   };
-  res.send(reply);
+  return reply;
+}
 
-  console.log(req.body);
+app.post("/slack/slash/new", async (req, res) => {
+  const reply = await fetchMember();
+  res.send(reply);
 });
 
 app.post("/slack/event", async (req, res) => {
@@ -68,9 +71,32 @@ app.post("/slack/event", async (req, res) => {
 });
 app.post("/slack/message_action", async (req, res) => {
   const { actions, response_url, user_id } = JSON.parse(req.body.payload);
+
+  if (actions[0].action_id === "try_again") {
+    const member = await fetchMember();
+    await fetch(response_url, {
+      method: "POST",
+      body: JSON.stringify(member),
+    });
+    res.send();
+    return;
+  }
+
   const answered = actions[0].selected_option.value;
   const correct = answered === actions[0].action_id;
   const gif = await searchGiphy(correct ? "victory" : "failure");
+
+  let resultText = "*CORRECT 🎉️*";
+  if (!correct) {
+    const members = await fetchMembers({
+      CHANNEL_ID: process.env.SLACK_TEAM_CHANNEL,
+      API_KEY: process.env.SLACK_BOT_TOKEN,
+    });
+    const correctMember = members.find(
+      ({ id }) => `member-${id}` === actions[0].action_id
+    );
+    resultText = `☠️ Correct answer was *${correctMember.name}*`;
+  }
 
   fetch(response_url, {
     method: "POST",
@@ -80,13 +106,28 @@ app.post("/slack/message_action", async (req, res) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: correct ? "*CORRECT 🎉️*" : "*ERRR... ☠️",
+            text: resultText,
           },
           accessory: {
             type: "image",
             image_url: gif,
             alt_text: "member",
           },
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Try again?",
+                emoji: true,
+              },
+              value: "try_again",
+              action_id: "try_again",
+            },
+          ],
         },
       ],
     }),
