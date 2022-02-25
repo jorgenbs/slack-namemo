@@ -31,16 +31,14 @@ app.post("/slack/slash/new", async (req, res) => {
   const reply = {
     blocks: [
       {
-        type: "section",
-        text: {
-          type: "mrkdwn",
+        type: "image",
+        title: {
+          type: "plain_text",
           text: "Who is this?",
         },
-        accessory: {
-          type: "image",
-          image_url: member.image,
-          alt_text: "member",
-        },
+        block_id: "image4",
+        image_url: member.image,
+        alt_text: "member",
       },
       {
         type: "actions",
