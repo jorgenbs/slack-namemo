@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import express from "express";
 import fetch from "node-fetch";
+import { writeAnswer } from "./db";
 
 import { fetchMembers } from "./slack/webapi";
 import { searchGiphy } from "./utils";
@@ -70,7 +71,7 @@ app.post("/slack/event", async (req, res) => {
   res.send(challenge);
 });
 app.post("/slack/message_action", async (req, res) => {
-  const { actions, response_url, user_id } = JSON.parse(req.body.payload);
+  const { actions, response_url, user } = JSON.parse(req.body.payload);
 
   if (actions[0].action_id === "try_again") {
     const member = await fetchMember();
@@ -97,6 +98,12 @@ app.post("/slack/message_action", async (req, res) => {
     );
     resultText = `☠️ Correct answer was *${correctMember.name}*`;
   }
+  writeAnswer({
+    bySlackId: user.id,
+    correctAnswerId: actions[0].action_id,
+    givenAnswerId: answered,
+    isCorrect: correct,
+  });
 
   fetch(response_url, {
     method: "POST",
