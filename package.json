@@ -5,7 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "node dist/app.js",
-    "compile_run": "tsc && node dist/app.js",
+    "compile_run": "node -r ts-node/register src/app.ts",
     "build": "prisma migrate deploy && tsc",
     "postinstall": "npm run build",
     "dev": "./node_modules/nodemon/bin/nodemon.js -e ts  --exec \"npm run compile_run\"",
@@ -21,6 +21,7 @@
     "express": "^4.17.3",
     "node-fetch": "^2.6.7",
     "nodemon": "^2.0.15",
+    "ts-node": "^10.5.0",
     "typescript": "^4.5.5"
   },
   "devDependencies": {

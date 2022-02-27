@@ -3,78 +3,25 @@ import express from "express";
 import fetch from "node-fetch";
 import { writeAnswer } from "./db";
 
-import { fetchMembers } from "./slack/webapi";
-import { searchGiphy } from "./utils";
+import { fetchMemberList, fetchRandomMember } from "./slack/webapi";
+import { replySlackBlocks, searchGiphy } from "./utils";
 dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = process.env.PORT ?? 8881;
 
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
-
-async function fetchMember() {
-  const members = await fetchMembers({
-    CHANNEL_ID: process.env.SLACK_TEAM_CHANNEL,
-    API_KEY: process.env.SLACK_BOT_TOKEN,
-  });
-  const options = members.map(({ name, id }) => ({
-    text: {
-      type: "plain_text",
-      text: name,
-      emoji: false,
-    },
-    value: `member-${id}`,
-  }));
-  const member = members[Math.round(Math.random() * members.length)];
-  const reply = {
-    blocks: [
-      {
-        type: "image",
-        title: {
-          type: "plain_text",
-          text: "Who is this?",
-        },
-        block_id: "image4",
-        image_url: member.image,
-        alt_text: "member",
-      },
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "static_select",
-            placeholder: {
-              type: "plain_text",
-              text: "Who is this?",
-              emoji: true,
-            },
-            options,
-            action_id: `member-${member.id}`,
-          },
-        ],
-      },
-    ],
-  };
-  return reply;
-}
-
 app.post("/slack/slash/new", async (req, res) => {
-  const reply = await fetchMember();
+  console.log("yo");
+  const reply = await fetchRandomMember();
   res.send(reply);
 });
 
-app.post("/slack/event", async (req, res) => {
-  const { challenge } = req.body;
-  res.send(challenge);
-});
 app.post("/slack/message_action", async (req, res) => {
   const { actions, response_url, user } = JSON.parse(req.body.payload);
 
   if (actions[0].action_id === "try_again") {
-    const member = await fetchMember();
+    const member = await fetchRandomMember();
     await fetch(response_url, {
       method: "POST",
       body: JSON.stringify(member),
@@ -89,10 +36,7 @@ app.post("/slack/message_action", async (req, res) => {
 
   let resultText = "*CORRECT 🎉️*";
   if (!correct) {
-    const members = await fetchMembers({
-      CHANNEL_ID: process.env.SLACK_TEAM_CHANNEL,
-      API_KEY: process.env.SLACK_BOT_TOKEN,
-    });
+    const members = await fetchMemberList();
     const correctMember = members.find(
       ({ id }) => `member-${id}` === actions[0].action_id
     );
@@ -104,56 +48,53 @@ app.post("/slack/message_action", async (req, res) => {
     givenAnswerId: answered,
     isCorrect: correct,
   });
-
-  fetch(response_url, {
-    method: "POST",
-    body: JSON.stringify({
-      blocks: [
+  const blocks = [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: resultText,
+      },
+      accessory: {
+        type: "image",
+        image_url: gif,
+        alt_text: "member",
+      },
+    },
+    {
+      type: "actions",
+      elements: [
         {
-          type: "section",
+          type: "button",
           text: {
-            type: "mrkdwn",
-            text: resultText,
+            type: "plain_text",
+            text: "Go again?",
+            emoji: true,
           },
-          accessory: {
-            type: "image",
-            image_url: gif,
-            alt_text: "member",
-          },
-        },
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Try again?",
-                emoji: true,
-              },
-              value: "try_again",
-              action_id: "try_again",
-            },
-          ],
+          value: "try_again",
+          action_id: "try_again",
         },
       ],
-    }),
-  });
-
+    },
+  ];
+  replySlackBlocks(response_url, blocks);
   res.send();
 });
+
+// UNUSED
 app.post("/slack/auth", async (req, res) => {
-  console.log(req.body);
   res.send();
+});
+
+app.get("/", (req, res) => {
+  res.send("Hello World");
+});
+
+app.post("/slack/event", async (req, res) => {
+  const { challenge } = req.body;
+  res.send(challenge);
 });
 
 app.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
 });
-
-(async () => {
-  const members = await fetchMembers({
-    CHANNEL_ID: process.env.SLACK_TEAM_CHANNEL,
-    API_KEY: process.env.SLACK_BOT_TOKEN,
-  });
-})();

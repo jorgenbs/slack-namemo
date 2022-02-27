@@ -8,3 +8,7 @@ export async function searchGiphy(query: string): Promise<string> {
   return responseJson.data[Math.round(Math.random() * responseJson.data.length)]
     .images.original.url;
 }
+
+export async function replySlackBlocks(url: string, blocks: Array<unknown>) {
+  return fetch(url, { method: "POST", body: JSON.stringify({ blocks }) });
+}
