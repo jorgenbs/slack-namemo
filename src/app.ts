@@ -3,7 +3,11 @@ import express from "express";
 import fetch from "node-fetch";
 import { writeAnswer } from "./db";
 
-import { fetchMemberList, fetchRandomMember } from "./slack/webapi";
+import {
+  fetchMemberList,
+  fetchRandomMember,
+  sendMessageToUser,
+} from "./slack/webapi";
 import { replySlackBlocks, searchGiphy } from "./utils";
 dotenv.config();
 const app = express();
@@ -12,7 +16,6 @@ app.use(express.urlencoded({ extended: true }));
 const port = process.env.PORT ?? 8881;
 
 app.post("/slack/slash/new", async (req, res) => {
-  console.log("yo");
   const reply = await fetchRandomMember();
   res.send(reply);
 });
@@ -92,7 +95,19 @@ app.get("/", (req, res) => {
 
 app.post("/slack/event", async (req, res) => {
   const { challenge } = req.body;
-  res.send(challenge);
+  if (challenge) {
+    res.send(challenge);
+    return;
+  }
+  if (
+    req.body.event?.type === "message" &&
+    req.body.event?.bot_id === undefined &&
+    req.body.event?.subtype !== "message_changed" &&
+    req.body.event?.message?.subtype !== "bot_message"
+  ) {
+    await sendMessageToUser(req.body.event.channel);
+  }
+  res.send();
 });
 
 app.listen(port, () => {

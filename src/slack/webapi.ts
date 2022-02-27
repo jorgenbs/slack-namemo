@@ -84,3 +84,43 @@ export async function fetchRandomMember(): Promise<unknown> {
   };
   return blocks;
 }
+
+export async function sendMessageToUser(channel: string) {
+  const options = {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SLACK_BOT_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channel,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "plain_text",
+            text: "Hi! 👋️ 😀️",
+            emoji: true,
+          },
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Lets get to know some people 💁️",
+                emoji: true,
+              },
+              value: "try_again",
+              action_id: "try_again",
+            },
+          ],
+        },
+      ],
+    }),
+  };
+
+  return fetch(`https://slack.com/api/chat.postMessage`, options);
+}
