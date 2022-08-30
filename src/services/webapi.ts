@@ -1,13 +1,11 @@
 import fetch from "node-fetch";
+import { setCachedMembers, getCachedMembers } from "./redis";
 const { SLACK_TEAM_CHANNEL, SLACK_BOT_TOKEN } = process.env;
 
-type Member = {
-  image: string;
-  name: string;
-  id: string;
-};
-
 export async function fetchMemberList(): Promise<Array<Member>> {
+  const cache = await getCachedMembers();
+  if (cache) return cache;
+
   const options = { headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` } };
 
   const channelRes = await fetch(
@@ -32,7 +30,7 @@ export async function fetchMemberList(): Promise<Array<Member>> {
   if (!members || !channel) {
     return [];
   }
-  return members.filter(keepUser).map((member) => ({
+  const filteredMembers = members.filter(keepUser).map((member) => ({
     image:
       member.profile.image_512 ||
       member.profile.image_original ||
@@ -40,6 +38,10 @@ export async function fetchMemberList(): Promise<Array<Member>> {
     name: member.profile.real_name_normalized,
     id: member.id,
   }));
+
+  setCachedMembers(filteredMembers);
+
+  return filteredMembers;
 }
 
 export async function fetchRandomMember(): Promise<unknown> {

@@ -1,13 +1,13 @@
 import dotenv from "dotenv";
 import express from "express";
 import fetch from "node-fetch";
-import { writeAnswer } from "./db";
+import { writeAnswer } from "./services/db";
 
 import {
   fetchMemberList,
   fetchRandomMember,
   sendMessageToUser,
-} from "./slack/webapi";
+} from "./services/webapi";
 import { replySlackBlocks, searchGiphy } from "./utils";
 dotenv.config();
 const app = express();
